@@ -183,16 +183,56 @@ module LinearAlgebra
 			self.dup.to_rref!(logger)
 		end
 		
+		def solve!(logger = KLib::DeadObject.new)
+			KLib::ArgumentChecking.type_check(logger, 'logger', NilClass, KLib::Logger)
+			if @state == :no_sol
+				return nil
+			else
+				self.to_rref!
+			end
+			
+			Solution.new(@names, @rows)
+		end
+		
+		def solve(logger = KLib::DeadObject.new)
+			self.dup.solve!(logger)
+		end
+		
 		# Exceptions
 		class MatrixFormatError < RuntimeError; end
 		
-		# Inner classes
 		class Solution
-		
-			def initialize()
 			
+			def initialize(names, rows)
+				KLib::ArgumentChecking.type_check_each(names, 'names', String)
+				KLib::ArgumentChecking.type_check_each(rows, 'rows', Row)
+				@names = names
+				@num_equations = rows.length
+				@equations = rows.map { |row| Equation.new(:names => names, :row => row) }
+				@basics = names[0..-2].map_to_h(:mode => :key) { nil }
+				rows.length.times do |idx|
+					row = rows[idx]
+					eq = @equations[idx]
+					first = row.first_non_zero
+					unless first.nil?
+						@basics[@names[first]] = eq
+					end
+				end
 			end
 			
+			def equations
+				str = ''
+				@basics.each_pair do |var, eq|
+					str << "\n" unless str.length == 0
+					if eq.nil?
+						str << "#{var} \u2208 \u211d"
+					else
+						str << eq.to_s(var)
+					end
+				end
+				str
+			end
+		
 		end
 		
 		class Row

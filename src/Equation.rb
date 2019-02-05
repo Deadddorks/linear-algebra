@@ -17,31 +17,46 @@ module LinearAlgebra
 		
 		attr_accessor :vars, :const
 		
-		def initialize(string)
-			raise "No explicit conversion of #{string.class} to String" unless string.is_a?(String)
-			orig = string
-			raise "'#{string}' does not look like an equation" if /#{NUMBER}\s+#{VAR}/.match?(string)
-			string = NORMALIZE.call(string)
-			raise "'#{string}' does not look like an equation" unless EQUATION.match?(string)
-			left, right = string.gsub('*', '').gsub('--', '+').gsub('-', '+-').split('=').map { |s| s.gsub(/^[+]/, '').split('+') }
-			right.map! { |r| "-#{r}".gsub('--', '') }
-			all = [left, right].flatten
-			
-			vars = Hash.new { |h, k| h[k] = 0.0.to_r }
-			const = (0.0).to_r
-			all.each do |a|
-				match = /(#{NUMBER})#{VAR}/.match(a)
-				if match
-					vars[match[3]] += match[1].to_f.to_r
-				else
-					const -= a.to_f.to_r
+		def initialize(input)
+			KLib::ArgumentChecking.type_check(input, 'input', String, Hash)
+			if input.is_a?(String)
+				raise "'#{input}' does not look like an equation" if /#{NUMBER}\s+#{VAR}/.match?(input)
+				string = NORMALIZE.call(input)
+				raise "'#{string}' does not look like an equation" unless EQUATION.match?(string)
+				left, right = string.gsub('*', '').gsub('--', '+').gsub('-', '+-').split('=').map { |s| s.gsub(/^[+]/, '').split('+') }
+				right.map! { |r| "-#{r}".gsub('--', '') }
+				all = [left, right].flatten
+				
+				vars = Hash.new { |h, k| h[k] = 0.0.to_r }
+				const = (0.0).to_r
+				all.each do |a|
+					match = /(#{NUMBER})#{VAR}/.match(a)
+					if match
+						vars[match[3]] += match[1].to_f.to_r
+					else
+						const -= a.to_f.to_r
+					end
 				end
+				
+				raise "You need at least 1 variable: '#{input}'" if vars.empty?
+				
+				@vars = vars
+				@const = const
+			elsif input.is_a?(Hash)
+				input = KLib::HashNormalizer.normalize(input) do |norm|
+					norm.names.required.type_check_each(String)
+					norm.row.required.type_check(Matrix::Row)
+				end
+				names = input[:names]
+				row = input[:row]
+				
+				@vars = {}
+				@const = row[row.num_vars]
+				
+				row.num_vars.times { |idx| @vars[names[idx]] = row[idx] }
+			else
+				raise "What is going on"
 			end
-			
-			raise "You need at least 1 variable: '#{orig}'" if vars.empty?
-			
-			@vars = vars
-			@const = const
 		end
 		
 		def to_s(var = nil)
@@ -52,20 +67,20 @@ module LinearAlgebra
 				right = []
 			else
 				raise "No such var '#{var}'" unless @vars.key?(var)
-				left = [var, vars[var]]
+				left = [[var, vars[var]]]
 				right = vars.select { |k, v| k != var }.transform_values { |v| -v }.to_a
 			end
-			conv = proc do |var|
-				if var[1] == 0
+			conv = proc do |v|
+				if v[1] == 0
 					co = nil
-				elsif var[1] == -1
+				elsif v[1] == -1
 					co = '-'
-				elsif var[1] == 1
+				elsif v[1] == 1
 					co = ''
 				else
-					co = "#{var[1].inspect(:conv_rational)}"
+					co = "#{v[1].inspect(:conv_rational)}"
 				end
-				co.nil? ? nil : "#{co}#{var[0]}"
+				co.nil? ? nil : "#{co}#{v[0]}"
 			end
 			left = left.map(&conv).select { |v| !v.nil? }
 			right = right.map(&conv).select { |v| !v.nil? }

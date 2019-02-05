@@ -8,7 +8,7 @@ module Solve
 	extend KLib::CliMod
 	
 	method_spec(:solve) do |met|
-		met.symbol(:log_level).enum_check(KLib::LogLevelManager::DEFAULT_LOG_LEVEL_MANAGER.valid_levels).default_value(:print)
+		met.symbol(:log_level).enum_check(KLib::LogLevelManager::DEFAULT_LOG_LEVEL_MANAGER.valid_levels).default_value(:important)
 		met.boolean(:display_log_level).boolean_data(:mode => :_dont).default_value(false)
 	end
 	
@@ -51,6 +51,9 @@ module Solve
 			
 			rref_matrix = ref_matrix.to_rref(logger)
 			logger.important("RREF #{rref_matrix}")
+			
+			solution = rref_matrix.solve(logger)
+			logger.important("Solution:\n#{solution.equations}")
 		rescue => e
 			logger.fatal(e.inspect)
 			e.backtrace.each { |b| logger.debug(b) }
