@@ -1,5 +1,5 @@
 
-require 'klib'
+require 'KLib'
 Dir.chdir(File.dirname(__FILE__)) do
 	require './FloatToR'
 	require './Equation'
