@@ -43,6 +43,36 @@ module LinearAlgebra
 			@vars = vars
 			@const = const
 		end
+		
+		def to_s(var = nil)
+			KLib::ArgumentChecking.type_check(var, 'var', NilClass, String)
+			vars = @vars.to_a.sort { |a, b| a[0] <=> b[0] }.to_h
+			if var.nil?
+				left = vars.transform_values { |v| v }.to_a
+				right = []
+			else
+				raise "No such var '#{var}'" unless @vars.key?(var)
+				left = [var, vars[var]]
+				right = vars.select { |k, v| k != var }.transform_values { |v| -v }.to_a
+			end
+			conv = proc do |var|
+				if var[1] == 0
+					co = nil
+				elsif var[1] == -1
+					co = '-'
+				elsif var[1] == 1
+					co = ''
+				else
+					co = "#{var[1].inspect(:conv_rational)}"
+				end
+				co.nil? ? nil : "#{co}#{var[0]}"
+			end
+			left = left.map(&conv).select { |v| !v.nil? }
+			right = right.map(&conv).select { |v| !v.nil? }
+			
+			return nil if left.empty?
+			"#{left.join(' + ')} = #{@const.to_s(:conv_rational)}#{right.map { |v| " + #{v}" }.join('')}"
+		end
 	
 	end
 

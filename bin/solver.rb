@@ -20,9 +20,25 @@ module Solve
 			exit(1)
 		end
 		
+		parsed_equations = []
+		invalid_equations = []
+		equations.each do |eq|
+		  begin
+			  parsed_equations << LinearAlgebra::Equation.new(eq)
+		  rescue
+			  invalid_equations << eq
+		  end
+		end
+		if invalid_equations.any?
+			logger.fatal("Found invalid equations...")
+			logger.indent + 1
+			invalid_equations.each{ |eq| logger.fatal("~ #{eq.inspect}") }
+			logger.indent - 1
+		end
+		
 		logger.print("Equations:")
 		logger.indent + 1
-		equations.each { |eq| logger.print("~ #{eq.inspect}") }
+		parsed_equations.each { |eq| logger.print("~ #{eq.to_s.inspect}") }
 		logger.indent - 1
 		logger.break
 		

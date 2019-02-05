@@ -66,8 +66,12 @@ module LinearAlgebra
 		end
 		
 		def self.parse(equations)
-			KLib::ArgumentChecking.type_check_each(equations, 'equations', String)
-			equations = equations.map { |eq| Equation.new(eq) }
+			KLib::ArgumentChecking.type_check_each(equations, 'equations', Equation, String)
+			if KLib::ArgumentChecking.type_check_each(equations, 'equations', String) {}
+				equations = equations.map { |eq| Equation.new(eq) }
+			else
+				KLib::ArgumentChecking.type_check_each(equations, 'equations', Equation)
+			end
 			all_vars = []
 			equations.each { |eq| all_vars |= eq.instance_variable_get(:@vars).keys }
 			all_vars.sort!
@@ -76,64 +80,6 @@ module LinearAlgebra
 				[*all_vars.map { |var| eq.instance_variable_get(:@vars)[var] }, eq.instance_variable_get(:@const)]
 			end
 			Matrix.new(all_vars, rows)
-		end
-		
-		class MatrixFormatError < RuntimeError; end
-		
-		class Row
-			
-			attr_reader :num_vars
-			
-			def initialize(data)
-				KLib::ArgumentChecking.type_check(data, 'data', Array, Row)
-				if data.is_a?(Row)
-					@vars = Array.new(data.num_vars + 1) { |i| data[i] }
-					@num_vars = data.num_vars
-				elsif data.is_a?(Array)
-					KLib::ArgumentChecking.type_check_each(data, 'data', Numeric)
-					@vars = data.map { |v| v.to_r }
-					@num_vars = data.length - 1
-				else
-					raise "What is going on"
-				end
-			end
-			
-			def dup
-				Row.new(@vars)
-			end
-			
-			def to_s
-				vars = @vars.map { |v| v.denominator == 1 ? v.to_i.to_s : v.to_f.to_s }
-				"[#{vars[0..-2].join(' ')} | #{vars[-1]}]"
-			end
-			
-			def [] (idx)
-				@vars[idx]
-			end
-			
-			def + (other_row)
-				KLib::ArgumentChecking.type_check(other_row, 'other_row', Row)
-				raise ArgumentError.new("Other row has different size") unless self.num_vars == other_row.num_vars
-				Row.new(0.upto(@num_vars).map { |i| self[i] + other_row[i] })
-			end
-			def - (other_row)
-				self + (other_row * -1)
-			end
-			
-			def * (const)
-				KLib::ArgumentChecking.type_check(const, 'const', Numeric)
-				Row.new(@vars.map { |v| v * const })
-			end
-			
-			def error_check
-				first_non_zero.nil? && @vars[-1] != 0
-			end
-			
-			def first_non_zero
-				@num_vars.times { |idx| return idx unless @vars[idx] == 0 }
-				nil
-			end
-		
 		end
 		
 		# Methods
@@ -236,7 +182,75 @@ module LinearAlgebra
 		def to_rref(logger = KLib::DeadObject.new)
 			self.dup.to_rref!(logger)
 		end
-	
+		
+		# Exceptions
+		class MatrixFormatError < RuntimeError; end
+		
+		# Inner classes
+		class Solution
+		
+			def initialize()
+			
+			end
+			
+		end
+		
+		class Row
+			
+			attr_reader :num_vars
+			
+			def initialize(data)
+				KLib::ArgumentChecking.type_check(data, 'data', Array, Row)
+				if data.is_a?(Row)
+					@vars = Array.new(data.num_vars + 1) { |i| data[i] }
+					@num_vars = data.num_vars
+				elsif data.is_a?(Array)
+					KLib::ArgumentChecking.type_check_each(data, 'data', Numeric)
+					@vars = data.map { |v| v.to_r }
+					@num_vars = data.length - 1
+				else
+					raise "What is going on"
+				end
+			end
+			
+			def dup
+				Row.new(@vars)
+			end
+			
+			def to_s
+				vars = @vars.map { |v| v.denominator == 1 ? v.to_i.to_s : v.to_f.to_s }
+				"[#{vars[0..-2].join(' ')} | #{vars[-1]}]"
+			end
+			
+			def [] (idx)
+				@vars[idx]
+			end
+			
+			def + (other_row)
+				KLib::ArgumentChecking.type_check(other_row, 'other_row', Row)
+				raise ArgumentError.new("Other row has different size") unless self.num_vars == other_row.num_vars
+				Row.new(0.upto(@num_vars).map { |i| self[i] + other_row[i] })
+			end
+			def - (other_row)
+				self + (other_row * -1)
+			end
+			
+			def * (const)
+				KLib::ArgumentChecking.type_check(const, 'const', Numeric)
+				Row.new(@vars.map { |v| v * const })
+			end
+			
+			def error_check
+				first_non_zero.nil? && @vars[-1] != 0
+			end
+			
+			def first_non_zero
+				@num_vars.times { |idx| return idx unless @vars[idx] == 0 }
+				nil
+			end
+		
+		end
+		
 	end
 
 
