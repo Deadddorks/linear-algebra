@@ -40,20 +40,23 @@ module Solve
 		logger.indent + 1
 		parsed_equations.each { |eq| logger.print("~ #{eq.to_s.inspect}") }
 		logger.indent - 1
-		logger.break
 		
 		begin
 			matrix = LinearAlgebra::Matrix.parse(equations)
+			logger.break
 			logger.important("Original #{matrix}")
 			
 			ref_matrix = matrix.to_ref(logger)
+			logger.break
 			logger.important("REF #{ref_matrix}")
 			
 			rref_matrix = ref_matrix.to_rref(logger)
+			logger.break
 			logger.important("RREF #{rref_matrix}")
 			
 			solution = rref_matrix.solve(logger)
-			logger.important("Solution:\n#{solution.equations}")
+			logger.break
+			logger.important("Solution:\n#{solution.nil? ? "No solution" : solution.equations}")
 		rescue => e
 			logger.fatal(e.inspect)
 			e.backtrace.each { |b| logger.debug(b) }

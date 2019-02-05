@@ -35,7 +35,9 @@ module LinearAlgebra
 		end
 		
 		def dup
-			Matrix.new(@names[0..-2], @rows)
+			mat = Matrix.new(@names[0..-2], @rows)
+			mat.instance_variable_set(:@state, @state)
+			mat
 		end
 		
 		def [] (row)
@@ -90,7 +92,6 @@ module LinearAlgebra
 			
 			logger.break
 			logger.print("Converting to Row Echelon Form...")
-			logger.break
 			
 			logger.indent + 1
 			@num_rows.times do |idx|
@@ -121,7 +122,7 @@ module LinearAlgebra
 						logger.info("row[#{idx2 + 1}] needs no additional work")
 					else
 						factor = @rows[idx2][basic_col] / current[basic_col]
-						logger.info("row[#{idx2}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect} * row[#{idx}]")
+						logger.info("row[#{idx2}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect(:conv_rational)} * row[#{idx}]")
 						@rows[idx2] -= current * factor
 					end
 				end
@@ -143,14 +144,15 @@ module LinearAlgebra
 			
 			logger.break
 			logger.print("Converting to Row Reduced Echelon Form...")
-			logger.break
 			
+			logger.indent + 1
 			(@num_rows - 1).downto(0) do |idx|
 				basic_col = @rows[idx].first_non_zero
 				if basic_col.nil?
 					if @rows[idx][-1] != 0
 						logger.error("System has no solution")
 						@state = :no_sol
+						logger.indent - 1
 						return self
 					else
 						logger.info("Nothing to do with row[#{idx + 1}]")
@@ -158,7 +160,7 @@ module LinearAlgebra
 				else
 					unless @rows[idx][basic_col] == 1
 						factor = Rational(1) / @rows[idx][basic_col]
-						logger.info("row[#{idx + 1}] *= #{factor.inspect}")
+						logger.info("row[#{idx + 1}] *= #{factor.inspect(:conv_rational)}")
 						@rows[idx] *= factor
 					end
 					current = @rows[idx]
@@ -168,12 +170,13 @@ module LinearAlgebra
 							logger.info("No need to reduce row[#{idx2 + 1}]")
 						else
 							factor = @rows[idx2][basic_col] / current[basic_col]
-							logger.info("row[#{idx2 + 1}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect} * row[#{idx + 1}]")
+							logger.info("row[#{idx2 + 1}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect(:conv_rational)} * row[#{idx + 1}]")
 							@rows[idx2] -= current * factor
 						end
 					end
 				end
 			end
+			logger.indent - 1
 			
 			@state = :rref
 			self
@@ -258,7 +261,7 @@ module LinearAlgebra
 			end
 			
 			def to_s
-				vars = @vars.map { |v| v.denominator == 1 ? v.to_i.to_s : v.to_f.to_s }
+				vars = @vars.map { |v| v.to_s(:conv_rational) }
 				"[#{vars[0..-2].join(' ')} | #{vars[-1]}]"
 			end
 			
