@@ -4,48 +4,43 @@ Dir.chdir(File.dirname(__FILE__)) do
 	require './../src/Matrix'
 end
 
-$la_log = KLib::Logger.new(:log_tolerance => :debug)
-
 module Solve
 	extend KLib::CliMod
 	
 	method_spec(:solve) do |met|
-		met.boolean(:ref).default_value(false)
-		met.boolean(:rref).default_value(false)
-		met.boolean(:show_steps).default_value(false).boolean_data(:mode => :_dont)
-		met.boolean(:debug_info).default_value(false)
+		met.symbol(:log_level).enum_check(KLib::LogLevelManager::DEFAULT_LOG_LEVEL_MANAGER.valid_levels).default_value(:print)
+		met.boolean(:display_log_level).boolean_data(:mode => :_dont).default_value(false)
 	end
 	
-	def self.solve(ref, rref, show_steps, debug_info, *equations)
-		if debug_info
-			# Set log levels
-		else
-			# Set log levels
-		end
+	def self.solve(log_level, display_log_level, *equations)
+		logger = KLib::Logger.new(:log_tolerance => log_level, :display_level => display_log_level)
+		
 		if equations.empty?
-			$la_log.fatal("You need at least 1 equation")
+			logger.fatal("You need at least 1 equation")
 			exit(1)
 		end
 		
-		$la_log.print("Equations:")
-		$la_log.indent + 1
-		equations.each { |eq| $la_log.print("~ #{eq.inspect}") }
-		$la_log.indent - 1
-		$la_log.break
+		logger.print("Equations:")
+		logger.indent + 1
+		equations.each { |eq| logger.print("~ #{eq.inspect}") }
+		logger.indent - 1
+		logger.break
 		
 		begin
 			matrix = LinearAlgebra::Matrix.parse(equations)
-			ref_matrix = matrix.to_ref
-			rref_matrix = ref_matrix.to_rref
+			logger.important("Original #{matrix}")
+			
+			ref_matrix = matrix.to_ref(logger)
+			logger.important("REF #{ref_matrix}")
+			
+			rref_matrix = ref_matrix.to_rref(logger)
+			logger.important("RREF #{rref_matrix}")
 		rescue => e
-			$la_log.fatal(e.inspect)
-			e.backtrace.each { |b| $la_log.debug(b) }
+			logger.fatal(e.inspect)
+			e.backtrace.each { |b| logger.debug(b) }
 			exit(1)
 		end
 		
-		$la_log.print("Original #{matrix.to_s}")
-		$la_log.print("REF #{ref_matrix.to_s}")
-		$la_log.print("RREF #{rref_matrix.to_s}")
 	end
 	
 end

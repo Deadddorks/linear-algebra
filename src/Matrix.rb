@@ -138,12 +138,17 @@ module LinearAlgebra
 		
 		# Methods
 		
-		def to_ref!
+		def to_ref!(logger = KLib::DeadObject.new)
+			KLib::ArgumentChecking.type_check(logger, 'logger', KLib::Logger, KLib::DeadObject)
 			return self unless %i{unknown}.include?(@state)
-			puts
-			puts("Matrix.to_ref...")
+			
+			logger.break
+			logger.print("Converting to Row Echelon Form...")
+			logger.break
+			
+			logger.indent + 1
 			@num_rows.times do |idx|
-				puts("starting row[#{idx + 1}]")
+				logger.info("starting row[#{idx + 1}]")
 				
 				left_most = [idx, @rows[idx].first_non_zero]
 				(idx + 1).upto(@num_rows - 1) do |idx2|
@@ -153,65 +158,71 @@ module LinearAlgebra
 				
 				# Check for swaps
 				if left_most[1].nil?
-					puts("Only zero rows remain...")
+					logger.info("Only zero rows remain...")
 					break
 				elsif left_most[0] != idx
-					puts("Swapping rows '#{idx + 1}' and '#{left_most[0] + 1}'")
+					logger.info("Swapping rows '#{idx + 1}' and '#{left_most[0] + 1}'")
 					@rows[idx], @rows[left_most[0]] = @rows[left_most[0]], @rows[idx]
 				end
 				
 				# The magic
 				basic_col = left_most[1]
 				current = @rows[idx]
-				puts("    current: #{current}")
+				logger.debug("current: #{current}")
 				
 				(idx + 1).upto(@num_rows - 1) do |idx2|
 					if @rows[idx2][basic_col] == 0
-						puts("    row[#{idx2 + 1}] needs no additional work")
+						logger.info("row[#{idx2 + 1}] needs no additional work")
 					else
 						factor = @rows[idx2][basic_col] / current[basic_col]
-						puts("    row[#{idx2}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect} * row[#{idx}]")
+						logger.info("row[#{idx2}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect} * row[#{idx}]")
 						@rows[idx2] -= current * factor
 					end
 				end
 			end
+			logger.indent- 1
 			
 			@state = :ref
 			self
 		end
 		
-		def to_ref
-			self.dup.to_ref!
+		def to_ref(logger = KLib::DeadObject.new)
+			self.dup.to_ref!(logger)
 		end
 		
-		def to_rref!
+		def to_rref!(logger = KLib::DeadObject.new)
+			KLib::ArgumentChecking.type_check(logger, 'logger', KLib::Logger, KLib::DeadObject)
 			return self unless %i{unknown ref}.include?(@state)
 			self.to_ref!
+			
+			logger.break
+			logger.print("Converting to Row Reduced Echelon Form...")
+			logger.break
 			
 			(@num_rows - 1).downto(0) do |idx|
 				basic_col = @rows[idx].first_non_zero
 				if basic_col.nil?
 					if @rows[idx][-1] != 0
-						$la_log.error("System has no solution")
+						logger.error("System has no solution")
 						@state = :no_sol
 						return self
 					else
-						puts("Nothing to do with row[#{idx + 1}]")
+						logger.info("Nothing to do with row[#{idx + 1}]")
 					end
 				else
 					unless @rows[idx][basic_col] == 1
 						factor = Rational(1) / @rows[idx][basic_col]
-						puts("row[#{idx + 1}] *= #{factor.inspect}")
+						logger.info("row[#{idx + 1}] *= #{factor.inspect}")
 						@rows[idx] *= factor
 					end
 					current = @rows[idx]
 					
 					(idx - 1).downto(0) do |idx2|
 						if @rows[idx2][basic_col] == 0
-							puts("No need to reduce row[#{idx2 + 1}]")
+							logger.info("No need to reduce row[#{idx2 + 1}]")
 						else
 							factor = @rows[idx2][basic_col] / current[basic_col]
-							puts("row[#{idx2 + 1}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect} * row[#{idx + 1}]")
+							logger.info("row[#{idx2 + 1}] #{factor < 0 ? '+' : '-'}= #{factor.abs.inspect} * row[#{idx + 1}]")
 							@rows[idx2] -= current * factor
 						end
 					end
@@ -222,8 +233,8 @@ module LinearAlgebra
 			self
 		end
 		
-		def to_rref
-			self.dup.to_rref!
+		def to_rref(logger = KLib::DeadObject.new)
+			self.dup.to_rref!(logger)
 		end
 	
 	end
