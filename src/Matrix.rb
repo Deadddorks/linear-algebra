@@ -96,6 +96,7 @@ module LinearAlgebra
 			logger.indent + 1
 			@num_rows.times do |idx|
 				logger.info("starting row[#{idx + 1}]")
+				logger.indent + 1
 				
 				left_most = [idx, @rows[idx].first_non_zero]
 				(idx + 1).upto(@num_rows - 1) do |idx2|
@@ -115,7 +116,6 @@ module LinearAlgebra
 				# The magic
 				basic_col = left_most[1]
 				current = @rows[idx]
-				logger.debug("current: #{current}")
 				
 				(idx + 1).upto(@num_rows - 1) do |idx2|
 					if @rows[idx2][basic_col] == 0
@@ -126,6 +126,7 @@ module LinearAlgebra
 						@rows[idx2] -= current * factor
 					end
 				end
+				logger.indent - 1
 			end
 			logger.indent- 1
 			
@@ -235,6 +236,19 @@ module LinearAlgebra
 				end
 				str
 			end
+			
+			def set
+				str = ''
+				@basics.each_pair do |var, eq|
+					str << "\n" unless str.length == 0
+					if eq.nil?
+						str << "#{var} \u2208 \u211d"
+					else
+						str << eq.to_s(var).split('=')[1].strip
+					end
+				end
+				str
+			end
 		
 		end
 		
@@ -295,6 +309,5 @@ module LinearAlgebra
 		end
 		
 	end
-
 
 end

@@ -1,5 +1,6 @@
 
 require 'KLib'
+require 'prawn'
 Dir.chdir(File.dirname(__FILE__)) do
 	require './../src/Matrix'
 end
@@ -13,7 +14,7 @@ module Solve
 	end
 	
 	def self.solve(log_level, display_log_level, *equations)
-		logger = KLib::Logger.new(:log_tolerance => log_level, :display_level => display_log_level)
+		logger = KLib::Logger.new(:log_tolerance => log_level, display_level: display_log_level, indent: '')
 		
 		if equations.empty?
 			logger.fatal("You need at least 1 equation")
@@ -67,6 +68,6 @@ module Solve
 	
 end
 
-if File.expand_path($0) == File.expand_path(__FILE__)
-	Solve.parse
+if File.expand_path($0) == File.expand_path(__FILE__) || true
+	Solve.parse(ARGV.dup)
 end
